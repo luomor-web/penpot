@@ -252,7 +252,7 @@
                     (assoc :stroke-opacity (:opacity color)))]
 
         (rx/of (dch/update-shapes ids (fn [shape]
-                                        (assoc-in shape [:strokes index] (into {} attrs)))))))))
+                                        (assoc-in shape [:strokes index] (merge (get-in shape [:strokes index]) attrs)))))))))
 
 (defn merge-stroke
   [ids attrs index]

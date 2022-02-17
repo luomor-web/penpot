@@ -39,20 +39,19 @@
        [:> :rect props])
 
      ;; TODO PATH
-     (for [[index value] (d/enumerate (:strokes shape))]
+     (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
        [:*
-       [:defs
-        [:& grad/gradient          {:shape value :attr :stroke-color-gradient}]
-        [:& cs/stroke-defs         {:shape value :render-id render-id}]]
-       
-       [:& shape-custom-stroke {:shape value}
-        [:> :rect (-> (attrs/extract-stroke-attrs value index)
-                      (obj/merge!
-                       #js {:x x
-                            :y y
-                            :transform transform
-                            :width width
-                            :height height
-                            ;; :fill "none"
-                            }))]]])))
+        [:defs
+         [:& grad/gradient          {:shape value :attr :stroke-color-gradient}]
+         [:& cs/stroke-defs         {:shape value :render-id render-id}]]
+
+        [:& shape-custom-stroke {:shape value}
+         [:> :rect (-> (attrs/extract-stroke-attrs value index)
+                       (obj/merge!
+                        #js {:x x
+                             :y y
+                             :transform transform
+                             :width width
+                             :height height
+                             :fill "none"}))]]])))
 
