@@ -6,9 +6,13 @@
 
 (ns app.main.ui.shapes.rect
   (:require
+   [app.common.data :as d]
    [app.common.geom.shapes :as gsh]
+   [app.main.ui.context :as muc]
    [app.main.ui.shapes.attrs :as attrs]
+   [app.main.ui.shapes.custom-stroke :as cs]
    [app.main.ui.shapes.custom-stroke :refer [shape-custom-stroke]]
+   [app.main.ui.shapes.gradients :as grad]
    [app.util.object :as obj]
    [rumext.alpha :as mf]))
 
@@ -16,6 +20,7 @@
   {::mf/wrap-props false}
   [props]
   (let [shape (unchecked-get props "shape")
+        render-id (mf/use-ctx muc/render-ctx)
         {:keys [x y width height]} shape
         transform (gsh/transform-matrix shape)
 
@@ -29,7 +34,25 @@
 
         path? (some? (.-d props))]
 
-    [:& shape-custom-stroke {:shape shape}
      (if path?
        [:> :path props]
-       [:> :rect props])]))
+       [:> :rect props])
+
+     ;; TODO PATH
+     (for [[index value] (d/enumerate (:strokes shape))]
+       [:*
+       [:defs
+        [:& grad/gradient          {:shape value :attr :stroke-color-gradient}]
+        [:& cs/stroke-defs         {:shape value :render-id render-id}]]
+       
+       [:& shape-custom-stroke {:shape value}
+        [:> :rect (-> (attrs/extract-stroke-attrs value index)
+                      (obj/merge!
+                       #js {:x x
+                            :y y
+                            :transform transform
+                            :width width
+                            :height height
+                            ;; :fill "none"
+                            }))]]])))
+

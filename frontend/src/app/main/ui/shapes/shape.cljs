@@ -53,7 +53,9 @@
           (obj/set! "clipPath" (frame/frame-clip-url shape render-id))
 
           (= :group type)
-          (attrs/add-style-attrs shape render-id))]
+          (attrs/add-style-attrs shape render-id))
+        
+        {:keys [x y width height]} (:selrect shape)]
 
     [:& (mf/provider muc/render-ctx) {:value render-id}
      [:> :g wrapper-props
