@@ -268,10 +268,23 @@
     ptk/WatchEvent
     (watch [_ state _]
       (let [add (fn [shape attrs] (assoc shape :strokes (into [attrs] (:strokes shape))))]
-        (println "ADD STROKE" stroke)
         (rx/of (dch/update-shapes
                 ids
                 #(add % stroke)))))))
+
+(defn remove-stroke
+  [ids position]
+  (ptk/reify ::remove-stroke
+    ptk/WatchEvent
+    (watch [_ state _]
+      (let [remove-fill-by-index (fn [values index] (->> (d/enumerate values)
+                                                         (filterv (fn [[idx _]] (not= idx index)))
+                                                         (mapv second)))
+
+            remove (fn [shape] (update shape :strokes remove-fill-by-index position))]
+        (rx/of (dch/update-shapes
+                ids
+                #(remove %)))))))
 
 (defn picker-for-selected-shape
   []

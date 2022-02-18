@@ -111,8 +111,10 @@
 
 (defn add-stroke [attrs shape render-id index]
   (let [stroke-style (:stroke-style shape :none)
-        stroke-color-gradient-id (str "stroke-color-gradient_" render-id)
-        stroke-width (:stroke-width shape 1)]
+        stroke-color-gradient-id (str "stroke-color-gradient_" render-id "_" index)
+        stroke-width (:stroke-width shape 1)
+        ;; _ (println "add-stroke" shape index)
+        ]
     (if true #_(not= stroke-style :none)
       (let [stroke-attrs
             (cond-> {:strokeWidth stroke-width}
@@ -236,7 +238,8 @@
   (let [render-id (mf/use-ctx muc/render-ctx)
         stroke-styles (-> (obj/get shape "style" (obj/new))
                           (add-stroke shape render-id index))
-        _ (println "extract-stroke-attrs" shape)]
+        ;; _ (println "extract-stroke-attrs" shape)
+        ]
     (-> (obj/new)
         (obj/set! "style" stroke-styles))))
 

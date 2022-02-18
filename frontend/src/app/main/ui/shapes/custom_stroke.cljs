@@ -9,6 +9,7 @@
    [app.common.data :as d]
    [app.common.geom.shapes :as gsh]
    [app.main.ui.context :as muc]
+   [app.main.ui.shapes.attrs :as attrs]
    [app.util.object :as obj]
    [cuerdas.core :as str]
    [rumext.alpha :as mf]))
@@ -25,16 +26,16 @@
     (-> props (obj/merge #js {:style style}))))
 
 (mf/defc inner-stroke-clip-path
-  [{:keys [render-id]}]
-  (let [clip-id (str "inner-stroke-" render-id)
-        shape-id (str "stroke-shape-" render-id)]
+  [{:keys [render-id index]}]
+  (let [clip-id (str "inner-stroke-" render-id "_" index)
+        shape-id (str "stroke-shape-" render-id "_" index)]
     [:> "clipPath" #js {:id clip-id}
      [:use {:xlinkHref (str "#" shape-id)}]]))
 
 (mf/defc outer-stroke-mask
-  [{:keys [shape render-id]}]
-  (let [stroke-mask-id (str "outer-stroke-" render-id)
-        shape-id (str "stroke-shape-" render-id)
+  [{:keys [shape render-id index]}]
+  (let [stroke-mask-id (str "outer-stroke-" render-id "_" index)
+        shape-id (str "stroke-shape-" render-id "_" index)
         stroke-width (case (:stroke-alignment shape :center)
                        :center (/ (:stroke-width shape 0) 2)
                        :outer (:stroke-width shape 0)
@@ -47,13 +48,13 @@
             :style #js {:fill "black"}}]]))
 
 (mf/defc cap-markers
-  [{:keys [shape render-id]}]
+  [{:keys [shape render-id index]}]
   (let [marker-id-prefix (str "marker-" render-id)
         cap-start (:stroke-cap-start shape)
         cap-end   (:stroke-cap-end shape)
 
         stroke-color (if (:stroke-color-gradient shape)
-                       (str/format "url(#%s)" (str "stroke-color-gradient_" render-id))
+                       (str/format "url(#%s)" (str "stroke-color-gradient_" render-id "_" index))
                        (:stroke-color shape))
 
         stroke-opacity (when-not (:stroke-color-gradient shape)
@@ -149,7 +150,7 @@
          [:rect {:x 3 :y 2.5 :width 0.5 :height 1}]])]))
 
 (mf/defc stroke-defs
-  [{:keys [shape render-id]}]
+  [{:keys [shape render-id index]}]
 
   (let [open-path? (and (= :path (:type shape)) (gsh/open-path? shape))]
     (cond
@@ -157,18 +158,21 @@
            (= :inner (:stroke-alignment shape :center))
            (> (:stroke-width shape 0) 0))
       [:& inner-stroke-clip-path {:shape shape
-                                  :render-id render-id}]
+                                  :render-id render-id
+                                  :index index}]
 
       (and (not open-path?)
            (= :outer (:stroke-alignment shape :center))
            (> (:stroke-width shape 0) 0))
       [:& outer-stroke-mask {:shape shape
-                             :render-id render-id}]
+                             :render-id render-id
+                             :index index}]
 
       (or (some? (:stroke-cap-start shape))
           (some? (:stroke-cap-end shape)))
       [:& cap-markers {:shape shape
-                       :render-id render-id}])))
+                       :render-id render-id
+                       :index index}])))
 
 ;; Outer alignment: display the shape in two layers. One
 ;; without stroke (only fill), and another one only with stroke
@@ -183,8 +187,9 @@
         child        (obj/get props "children")
         base-props   (obj/get child "props")
         elem-name    (obj/get child "type")
-        stroke-mask-id (str "outer-stroke-" render-id)
-        shape-id (str "stroke-shape-" render-id)
+        index        (obj/get props "index")
+        stroke-mask-id (str "outer-stroke-" render-id "_" index)
+        shape-id (str "stroke-shape-" render-id "_" index)
 
         style-str (->> (obj/get base-props "style")
                        (js->clj)
@@ -226,11 +231,12 @@
         elem-name  (obj/get child "type")
         shape      (obj/get props "shape")
         transform  (obj/get base-props "transform")
+        index      (obj/get props "index")
 
         stroke-width (:stroke-width shape 0)
 
-        clip-id (str "inner-stroke-" render-id)
-        shape-id (str "stroke-shape-" render-id)
+        clip-id (str "inner-stroke-" render-id "_" index)
+        shape-id (str "stroke-shape-" render-id "_" index)
 
         clip-path (str "url('#" clip-id "')")
         shape-props (-> base-props
@@ -256,6 +262,7 @@
   [props]
   (let [child (obj/get props "children")
         shape (obj/get props "shape")
+        index (obj/get props "index")
         stroke-width (:stroke-width shape 0)
         stroke-style (:stroke-style shape :none)
         stroke-position (:stroke-alignment shape :center)
@@ -264,17 +271,42 @@
         closed? (or (not= :path (:type shape))
                     (not (gsh/open-path? shape)))
         inner?  (= :inner stroke-position)
-        outer?  (= :outer stroke-position)]
+        outer?  (= :outer stroke-position)
+        ;; _ (println "shape-custom-stroke" "child" (attrs/extract-stroke-attrs (get-in shape (:strokes 0)) 0))
+
+        ]
 
     (cond
       (and has-stroke? inner? closed?)
-      [:& inner-stroke {:shape shape}
+      [:& inner-stroke {:shape shape :index index}
        child]
 
       (and has-stroke? outer? closed?)
-      [:& outer-stroke {:shape shape}
+      [:& outer-stroke {:shape shape :index index}
        child]
 
       :else
       child)))
 
+(mf/defc shape-custom-strokes
+  {::mf/wrap-props false}
+  [props]
+  (let [child (obj/get props "children")
+        shape (obj/get props "shape")
+        render-id (mf/use-ctx muc/render-ctx)
+        ;; props (-> (obj/get child "props")
+        ;;           (obj/set! "fill" "none")
+        ;;           (obj/merge!
+        ;;            (attrs/extract-stroke-attrs (get-in shape [:strokes 0]) 0)))
+        ;; _ (println "-----------" (get-in shape [:strokes 0]) props)
+        elem-name    (obj/get child "type")]
+
+    (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
+      [:& shape-custom-stroke {:shape value :index index}
+       ;; TODO: si solo hay un fill esto no tira
+       [:> elem-name (-> (obj/get child "props")
+                         (obj/set! "fill" (str "url(#fill-" render-id ")"))
+                        ;;  (obj/merge!
+                        ;;   (attrs/extract-style-attrs value))
+                         (obj/merge!
+                          (attrs/extract-stroke-attrs value index)))]])))

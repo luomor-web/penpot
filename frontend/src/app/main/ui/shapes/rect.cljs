@@ -11,7 +11,7 @@
    [app.main.ui.context :as muc]
    [app.main.ui.shapes.attrs :as attrs]
    [app.main.ui.shapes.custom-stroke :as cs]
-   [app.main.ui.shapes.custom-stroke :refer [shape-custom-stroke]]
+   [app.main.ui.shapes.custom-stroke :refer [shape-custom-stroke, shape-custom-strokes]]
    [app.main.ui.shapes.gradients :as grad]
    [app.util.object :as obj]
    [rumext.alpha :as mf]))
@@ -34,18 +34,25 @@
 
         path? (some? (.-d props))]
 
+    [:& shape-custom-strokes {:shape shape}
+     (if path?
+       [:> :path props]
+       [:> :rect props])]
+
+    #_[:*
      (if path?
        [:> :path props]
        [:> :rect props])
 
      ;; TODO PATH
      (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
-       [:*
+       [:g
         [:defs
+         ;; TODO: index
          [:& grad/gradient          {:shape value :attr :stroke-color-gradient}]
-         [:& cs/stroke-defs         {:shape value :render-id render-id}]]
+         [:& cs/stroke-defs         {:shape value :render-id render-id :index index}]]
 
-        [:& shape-custom-stroke {:shape value}
+        [:& shape-custom-stroke {:shape value :index index}
          [:> :rect (-> (attrs/extract-stroke-attrs value index)
                        (obj/merge!
                         #js {:x x
@@ -53,5 +60,5 @@
                              :transform transform
                              :width width
                              :height height
-                             :fill "none"}))]]])))
+                             :fill "none"}))]]])]))
 

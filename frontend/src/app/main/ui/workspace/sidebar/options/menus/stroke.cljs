@@ -96,6 +96,15 @@
              (println "-> handle-change-stroke-color" color)
              (st/emit! (dc/change-stroke ids color index)))))
 
+
+        handle-remove
+        (mf/use-callback
+         (mf/deps ids)
+         (fn [index]
+           (fn []
+             (println "-> handle-remove" index)
+             (st/emit! (dc/remove-stroke ids index)))))
+
         handle-detach
         (mf/use-callback
          (mf/deps ids)
@@ -189,7 +198,8 @@
           (st/emit! (dch/update-shapes ids #(assoc % :stroke-style :none))))
 
         ;;_ (println "current-stroke-color" current-stroke-color)
-        _ (println "values" values)]
+        ;; _ (println "values" values)
+        ]
 
     [:div.element-set
      [:div.element-set-title
@@ -208,7 +218,8 @@
                                 :gradient (:stroke-color-gradient value)}
                         :title (tr "workspace.options.stroke-color")
                         :on-change (handle-change-stroke-color index)
-                        :on-detach (handle-detach index)}]
+                        :on-detach (handle-detach index)
+                        :on-remove (handle-remove index)}]
 
         ;; Stroke Width, Alignment & Style
          [:div.row-flex
