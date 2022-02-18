@@ -32,6 +32,21 @@
     [:> "clipPath" #js {:id clip-id}
      [:use {:xlinkHref (str "#" shape-id)}]]))
 
+;; (mf/defc outer-stroke-mask
+;;   [{:keys [shape render-id index]}]
+;;   (let [stroke-mask-id (str "outer-stroke-" render-id "_" index)
+;;         shape-id (str "stroke-shape-" render-id "_" index)
+;;         stroke-width (case (:stroke-alignment shape :center)
+;;                        :center (/ (:stroke-width shape 0) 2)
+;;                        :outer (:stroke-width shape 0)
+;;                        0)]
+;;     [:mask {:id stroke-mask-id}
+;;      [:use {:xlinkHref (str "#" shape-id)
+;;             :style #js {:fill "none" :stroke "white" :strokeWidth (* stroke-width 2)}}]
+
+;;      [:use {:xlinkHref (str "#" shape-id)
+;;             :style #js {:fill "black"}}]]))
+
 (mf/defc outer-stroke-mask
   [{:keys [shape render-id index]}]
   (let [stroke-mask-id (str "outer-stroke-" render-id "_" index)
@@ -39,8 +54,19 @@
         stroke-width (case (:stroke-alignment shape :center)
                        :center (/ (:stroke-width shape 0) 2)
                        :outer (:stroke-width shape 0)
-                       0)]
-    [:mask {:id stroke-mask-id}
+                       0)
+        margin (gsh/shape-stroke-margin shape stroke-width)
+        bounding-box (-> (gsh/points->selrect (:points shape))
+                         (update :x - (+ stroke-width margin))
+                         (update :y - (+ stroke-width margin))
+                         (update :width + (* 2 (+ stroke-width margin)))
+                         (update :height + (* 2 (+ stroke-width margin))))]
+    [:mask {:id stroke-mask-id
+            :x (:x bounding-box)
+            :y (:y bounding-box)
+            :width (:width bounding-box)
+            :height (:height bounding-box)
+            :maskUnits "userSpaceOnUse"}
      [:use {:xlinkHref (str "#" shape-id)
             :style #js {:fill "none" :stroke "white" :strokeWidth (* stroke-width 2)}}]
 
@@ -288,6 +314,7 @@
       :else
       child)))
 
+
 (mf/defc shape-custom-strokes
   {::mf/wrap-props false}
   [props]
@@ -301,12 +328,35 @@
         ;; _ (println "-----------" (get-in shape [:strokes 0]) props)
         elem-name    (obj/get child "type")]
 
-    (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
-      [:& shape-custom-stroke {:shape value :index index}
-       ;; TODO: si solo hay un fill esto no tira
-       [:> elem-name (-> (obj/get child "props")
-                         (obj/set! "fill" (str "url(#fill-" render-id ")"))
+    [:*
+     ;; TODO: ¿y si solo hay un fill?
+     
+     [:> elem-name (-> (obj/get child "props")
+                       (obj/clone)
+                       (obj/set! "fill" (str "url(#fill-" render-id ")")))]
+
+     (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
+       [:& shape-custom-stroke {:shape value :index index}
+       
+        [:> elem-name (-> (obj/get child "props")
+                          (obj/clone)
+                         ;; TODO: setear a none o no rompe según qué cosas
+                          (obj/set! "fill" (if (= :outer (:stroke-alignment value :center))
+                                             (str "url(#fill-" render-id ")")
+                                             "none"))
                         ;;  (obj/merge!
                         ;;   (attrs/extract-style-attrs value))
-                         (obj/merge!
-                          (attrs/extract-stroke-attrs value index)))]])))
+                            (obj/merge!
+                             (attrs/extract-stroke-attrs value index)))]])
+     ]))
+
+
+;;         transform (gsh/transform-matrix shape)
+
+;; props (-> (attrs/extract-style-attrs shape)
+;;           (obj/merge!
+;;            #js {:x x
+;;                 :y y
+;;                 :transform transform
+;;                 :width width
+;;                 :height height}))
