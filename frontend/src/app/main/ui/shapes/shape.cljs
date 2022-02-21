@@ -65,26 +65,15 @@
       [:defs
        [:& defs/svg-defs          {:shape shape :render-id render-id}]
        [:& filters/filters        {:shape shape :filter-id filter-id}]
-       ;; TODO
-      ;;  [:& grad/gradient          {:shape shape :attr :stroke-color-gradient}]
 
-       (for [[index value] (-> (d/enumerate (:strokes shape [])) reverse)]
-         (cond (some? (:stroke-color-gradient value))
-               (case (:type (:stroke-color-gradient value))
-                 :linear [:> grad/linear-gradient #js {:id (str (name :stroke-color-gradient) "_" render-id "_" index)
-                                                       :gradient (:stroke-color-gradient value)
-                                                       :shape shape}]
-                 :radial [:> grad/radial-gradient #js {:id (str (name :stroke-color-gradient) "_" render-id "_" index)
-                                                       :gradient (:stroke-color-gradient value)
-                                                       :shape shape}])))
+       [:& cs/stroke-defs         {:shape shape :render-id render-id}]
 
-       (when (or (some? (:fill-image shape))
+       #_(when (or (some? (:fill-image shape))
                  (= :image (:type shape))
                  (> (count (:fills shape)) 1)
                  (some :fill-color-gradient (:fills shape)))
          [:& fills/fills            {:shape shape :render-id render-id}])
-      ;;  [:& cs/stroke-defs         {:shape shape :render-id render-id}]
-       (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
-         [:& cs/stroke-defs         {:shape value :render-id render-id :index index}])
+       [:& fills/fills            {:shape shape :render-id render-id}]
+
        [:& frame/frame-clip-def   {:shape shape :render-id render-id}]]
       children]]))

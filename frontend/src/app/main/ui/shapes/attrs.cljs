@@ -197,7 +197,7 @@
 
          styles (-> (obj/get props "style" (obj/new))
                     (obj/merge! svg-styles)
-                    (add-stroke shape render-id 0)
+                    (add-stroke (get-in shape [:strokes 0]) render-id 0)
                     (add-layer-props shape))
 
          styles (cond (or (some? (:fill-image shape))

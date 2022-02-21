@@ -10,6 +10,7 @@
    [app.common.geom.shapes :as gsh]
    [app.main.ui.context :as muc]
    [app.main.ui.shapes.attrs :as attrs]
+   [app.main.ui.shapes.gradients :as grad]
    [app.util.object :as obj]
    [cuerdas.core :as str]
    [rumext.alpha :as mf]))
@@ -60,7 +61,10 @@
                          (update :x - (+ stroke-width margin))
                          (update :y - (+ stroke-width margin))
                          (update :width + (* 2 (+ stroke-width margin)))
-                         (update :height + (* 2 (+ stroke-width margin))))]
+                         (update :height + (* 2 (+ stroke-width margin))))
+        
+        _ (println "bounding-box" (:points shape))
+        ]
     [:mask {:id stroke-mask-id
             :x (:x bounding-box)
             :y (:y bounding-box)
@@ -175,7 +179,7 @@
                   :fillOpacity stroke-opacity}
          [:rect {:x 3 :y 2.5 :width 0.5 :height 1}]])]))
 
-(mf/defc stroke-defs
+(mf/defc stroke-def
   [{:keys [shape render-id index]}]
 
   (let [open-path? (and (= :path (:type shape)) (gsh/open-path? shape))]
@@ -199,6 +203,21 @@
       [:& cap-markers {:shape shape
                        :render-id render-id
                        :index index}])))
+
+(mf/defc stroke-defs
+  [{:keys [shape render-id]}]
+  (let []
+     (for [[index value] (-> (d/enumerate (:strokes shape [])) reverse)]
+       [:*
+        [:& stroke-def {:shape (assoc value :points (:points shape)) :render-id render-id :index index}]
+        (cond (some? (:stroke-color-gradient value))
+              (case (:type (:stroke-color-gradient value))
+                :linear [:> grad/linear-gradient #js {:id (str (name :stroke-color-gradient) "_" render-id "_" index)
+                                                      :gradient (:stroke-color-gradient value)
+                                                      :shape shape}]
+                :radial [:> grad/radial-gradient #js {:id (str (name :stroke-color-gradient) "_" render-id "_" index)
+                                                      :gradient (:stroke-color-gradient value)
+                                                      :shape shape}]))])))
 
 ;; Outer alignment: display the shape in two layers. One
 ;; without stroke (only fill), and another one only with stroke
@@ -297,10 +316,7 @@
         closed? (or (not= :path (:type shape))
                     (not (gsh/open-path? shape)))
         inner?  (= :inner stroke-position)
-        outer?  (= :outer stroke-position)
-        ;; _ (println "shape-custom-stroke" "child" (attrs/extract-stroke-attrs (get-in shape (:strokes 0)) 0))
-
-        ]
+        outer?  (= :outer stroke-position)]
 
     (cond
       (and has-stroke? inner? closed?)
@@ -321,42 +337,28 @@
   (let [child (obj/get props "children")
         shape (obj/get props "shape")
         render-id (mf/use-ctx muc/render-ctx)
-        ;; props (-> (obj/get child "props")
-        ;;           (obj/set! "fill" "none")
-        ;;           (obj/merge!
-        ;;            (attrs/extract-stroke-attrs (get-in shape [:strokes 0]) 0)))
-        ;; _ (println "-----------" (get-in shape [:strokes 0]) props)
         elem-name    (obj/get child "type")]
 
     [:*
      ;; TODO: ¿y si solo hay un fill?
-     
      [:> elem-name (-> (obj/get child "props")
                        (obj/clone)
-                       (obj/set! "fill" (str "url(#fill-" render-id ")")))]
+                       (obj/set! "fill" (str "url(#fill-" render-id ")"))
+                       (attrs/add-fill shape render-id 0))]
 
      (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
        [:& shape-custom-stroke {:shape value :index index}
-       
         [:> elem-name (-> (obj/get child "props")
                           (obj/clone)
                          ;; TODO: setear a none o no rompe según qué cosas
                           (obj/set! "fill" (if (= :outer (:stroke-alignment value :center))
                                              (str "url(#fill-" render-id ")")
                                              "none"))
-                        ;;  (obj/merge!
-                        ;;   (attrs/extract-style-attrs value))
-                            (obj/merge!
-                             (attrs/extract-stroke-attrs value index)))]])
+                          (obj/merge!
+                           (attrs/extract-style-attrs value))
+
+                          (obj/merge!
+                           (attrs/extract-stroke-attrs value index)))]])
+     
      ]))
 
-
-;;         transform (gsh/transform-matrix shape)
-
-;; props (-> (attrs/extract-style-attrs shape)
-;;           (obj/merge!
-;;            #js {:x x
-;;                 :y y
-;;                 :transform transform
-;;                 :width width
-;;                 :height height}))
