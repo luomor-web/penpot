@@ -249,8 +249,7 @@
              [:option {:value ":mixed"} (tr "workspace.options.stroke.mixed")]]]
 
            ;; Stroke Caps
-           (when (and show-caps
-                      (not (#{:inner :outer} (:stroke-alignment value))))
+           (when show-caps
              [:div.row-flex
               [:div.cap-select {:tab-index 0 ;; tab-index to make the element focusable
                                 :on-click (open-caps-select start-caps-state)}
