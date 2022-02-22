@@ -37,28 +37,4 @@
     [:& shape-custom-strokes {:shape shape}
      (if path?
        [:> :path props]
-       [:> :rect props])]
-
-    #_[:*
-     (if path?
-       [:> :path props]
-       [:> :rect props])
-
-     ;; TODO PATH
-     (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
-       [:g
-        [:defs
-         ;; TODO: index
-         [:& grad/gradient          {:shape value :attr :stroke-color-gradient}]
-         [:& cs/stroke-defs         {:shape value :render-id render-id :index index}]]
-
-        [:& shape-custom-stroke {:shape value :index index}
-         [:> :rect (-> (attrs/extract-stroke-attrs value index)
-                       (obj/merge!
-                        #js {:x x
-                             :y y
-                             :transform transform
-                             :width width
-                             :height height
-                             :fill "none"}))]]])]))
-
+       [:> :rect props])]))

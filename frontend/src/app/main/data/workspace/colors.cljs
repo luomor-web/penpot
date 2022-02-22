@@ -286,6 +286,16 @@
                 ids
                 #(remove %)))))))
 
+(defn remove-all-strokes
+  [ids]
+  (ptk/reify ::remove-all-strokes
+    ptk/WatchEvent
+    (watch [_ state _]
+      (let [remove-all (fn [shape] (assoc shape :strokes []))]
+        (rx/of (dch/update-shapes
+                ids
+                #(remove-all %)))))))
+
 (defn picker-for-selected-shape
   []
   (let [sub (rx/subject)]
