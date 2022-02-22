@@ -237,9 +237,7 @@
   [shape index]
   (let [render-id (mf/use-ctx muc/render-ctx)
         stroke-styles (-> (obj/get shape "style" (obj/new))
-                          (add-stroke shape render-id index))
-        ;; _ (println "extract-stroke-attrs" shape)
-        ]
+                          (add-stroke shape render-id index))]
     (-> (obj/new)
         (obj/set! "style" stroke-styles))))
 

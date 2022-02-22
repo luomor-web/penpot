@@ -66,14 +66,12 @@
        [:& defs/svg-defs          {:shape shape :render-id render-id}]
        [:& filters/filters        {:shape shape :filter-id filter-id}]
 
-       [:& cs/stroke-defs         {:shape shape :render-id render-id}]
-
-       #_(when (or (some? (:fill-image shape))
+       (when (or (some? (:fill-image shape))
                  (= :image (:type shape))
                  (> (count (:fills shape)) 1)
                  (some :fill-color-gradient (:fills shape)))
          [:& fills/fills            {:shape shape :render-id render-id}])
-       [:& fills/fills            {:shape shape :render-id render-id}]
+       #_[:& fills/fills            {:shape shape :render-id render-id}]
 
        [:& frame/frame-clip-def   {:shape shape :render-id render-id}]]
       children]]))
