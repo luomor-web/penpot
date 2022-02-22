@@ -404,17 +404,15 @@
                                                (str "url(#fill-" render-id ")")
                                                "none"))
 
-                          (obj/merge!
-                           (attrs/extract-stroke-attrs value index))
 
                           #_(obj/set! "fill" (str "url(#fill-" render-id ")"))
                           (obj/set! "fill" "none")
-                          (cond-> multiple-fills?
+                          #_(cond-> multiple-fills?
                             (obj/set! "fill" (str "url(#fill-" render-id ")")))
 
-                          (cond-> one-fill?
+                          #_(cond-> one-fill?
                             (add-style
                              (obj/get (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0) "style")))
 
                           (add-style
-                           (obj/get (attrs/extract-stroke-attrs value 0) "style")))]])]))
+                           (obj/get (attrs/extract-stroke-attrs value index) "style")))]])]))
