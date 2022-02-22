@@ -334,51 +334,48 @@
         [:& stroke-defs {:shape shape :render-id render-id :index index}]]
        child])))
 
+(defn kk [position shape child value]
+  (let [
+        render-id (mf/use-ctx muc/render-ctx)
+        multiple-fills? (or (some? (:fill-image shape))
+                            (= :image (:type shape))
+                            (> (count (:fills shape)) 1)
+                            (some :fill-color-gradient (:fills shape)))
+        one-fill? (= (count (:fills shape)) 1)
+
+        props (-> (obj/get child "props")
+                  (obj/clone))
+        
+        ;; TODO: el caso de las imágenes
+        props (cond (or (not= position (- (count (:strokes shape)) 1)) (= (count (:fills shape)) 0))
+                    (-> props
+                        (obj/without ["fill" "fillOpacity"])
+                        (obj/set!
+                         "style"
+                         (-> (obj/get child "style")
+                             (obj/clone)
+                             (obj/without ["fill" "fillOpacity"])
+                             (obj/set! "fill" "none"))))
+
+                    (and one-fill? #_(= position (- (count (:strokes shape)) 1)))
+                    (obj/merge!
+                     props
+                     (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0))
+
+                    (and multiple-fills? #_(= position (- (count (:strokes shape)) 1)))
+                    (obj/set! props "fill" (str "url(#fill-" render-id ")")))
+
+        props (-> props
+                  (add-style
+                   (obj/get (attrs/extract-stroke-attrs value position) "style")))]
+    props))
 
 (mf/defc shape-custom-strokes
   {::mf/wrap-props false}
   [props]
   (let [child (obj/get props "children")
         shape (obj/get props "shape")
-        render-id (mf/use-ctx muc/render-ctx)
         elem-name    (obj/get child "type")
-        multiple-fills? (or (some? (:fill-image shape))
-                            (= :image (:type shape))
-                            (> (count (:fills shape)) 1)
-                            (some :fill-color-gradient (:fills shape)))
-        one-fill? (= (count (:fills shape)) 1)
-        ;; _ (println "multiple-fills? 1" multiple-fills? (get-in shape [:fills]))
-        ;; _ (println "multiple-fills? --1" multiple-fills? shape)
-        ;; _ (println "(obj/get child props)" (obj/get child "props"))
-
-        ;; _ (println "MERGE" (-> (obj/get child "props")
-        ;;                        (obj/clone)
-
-        ;;                        (add-style
-        ;;                         (obj/get (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0) "style"))
-
-        ;;                        (add-style
-        ;;                         (obj/get (attrs/extract-stroke-attrs (get-in shape [:strokes 0]) 0) "style"))
-
-                               
-;; (defn add-style
-;;   [props new-style]
-;;   (let [old-style (obj/get props "style")
-;;         style (obj/merge old-style (clj->js new-style))]
-;;     (-> props (obj/merge #js {:style style}))))
-
-
-                              ;;  ))
-        ;; _ (println "KK2" (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0))
-
-        
-
-        ;; _ (println "xxxxx"  (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0))
-        ;; _ (println "MERGE" (add-style
-        ;;                     (obj/get child "props")
-        ;;                     (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0)))
-
-        ;; _ (println "multiple-fills? 2" (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0))
         ]
 
     [:*
@@ -397,22 +394,5 @@
 
      (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
        [:& shape-custom-stroke {:shape (assoc value :points (:points shape)) :index index}
-        [:> elem-name (-> (obj/get child "props")
-                          (obj/clone)
-                         ;; TODO: setear a none o no rompe según qué cosas
-                          #_(obj/set! "fill" (if (= :outer (:stroke-alignment value :center))
-                                               (str "url(#fill-" render-id ")")
-                                               "none"))
+        [:> elem-name (kk index shape child value)]])]))
 
-
-                          #_(obj/set! "fill" (str "url(#fill-" render-id ")"))
-                          (obj/set! "fill" "none")
-                          #_(cond-> multiple-fills?
-                            (obj/set! "fill" (str "url(#fill-" render-id ")")))
-
-                          #_(cond-> one-fill?
-                            (add-style
-                             (obj/get (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0) "style")))
-
-                          (add-style
-                           (obj/get (attrs/extract-stroke-attrs value index) "style")))]])]))
