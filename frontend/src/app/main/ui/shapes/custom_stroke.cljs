@@ -334,36 +334,37 @@
         [:& stroke-defs {:shape shape :render-id render-id :index index}]]
        child])))
 
-(defn kk [position shape child value]
-  (let [
-        render-id (mf/use-ctx muc/render-ctx)
-        multiple-fills? (or (some? (:fill-image shape))
-                            (= :image (:type shape))
-                            (> (count (:fills shape)) 1)
-                            (some :fill-color-gradient (:fills shape)))
-        one-fill? (= (count (:fills shape)) 1)
+(defn build-stroke-props [position shape child value]
+  (let [render-id    (mf/use-ctx muc/render-ctx)
+        url-fill?    (or (some? (:fill-image shape))
+                         (= :image (:type shape))
+                         (> (count (:fills shape)) 1)
+                         (some :fill-color-gradient (:fills shape)))
+        one-fill?    (= (count (:fills shape)) 1)
+        no-fills?    (= (count (:fills shape)) 0)
+        last-stroke? (not= position (- (count (:strokes shape)) 1))
 
-        props (-> (obj/get child "props")
-                  (obj/clone))
-        
-        ;; TODO: el caso de las imágenes
-        props (cond (or (not= position (- (count (:strokes shape)) 1)) (= (count (:fills shape)) 0))
-                    (-> props
-                        (obj/without ["fill" "fillOpacity"])
-                        (obj/set!
-                         "style"
-                         (-> (obj/get child "style")
-                             (obj/clone)
-                             (obj/without ["fill" "fillOpacity"])
-                             (obj/set! "fill" "none"))))
+        props        (-> (obj/get child "props")
+                         (obj/clone))
 
-                    (and one-fill? #_(= position (- (count (:strokes shape)) 1)))
-                    (obj/merge!
-                     props
-                     (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0))
+        props (cond
+                (or last-stroke? (and (not url-fill?) no-fills?))
+                (-> props
+                    (obj/without ["fill" "fillOpacity"])
+                    (obj/set!
+                     "style"
+                     (-> (obj/get child "style")
+                         (obj/clone)
+                         (obj/without ["fill" "fillOpacity"])
+                         (obj/set! "fill" "none"))))
 
-                    (and multiple-fills? #_(= position (- (count (:strokes shape)) 1)))
-                    (obj/set! props "fill" (str "url(#fill-" render-id ")")))
+                url-fill?
+                (obj/set! props "fill" (str "url(#fill-" render-id ")"))
+
+                (and one-fill? (not url-fill?))
+                (obj/merge!
+                 props
+                 (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0)))
 
         props (-> props
                   (add-style
@@ -375,24 +376,9 @@
   [props]
   (let [child (obj/get props "children")
         shape (obj/get props "shape")
-        elem-name    (obj/get child "type")
-        ]
-
+        elem-name    (obj/get child "type")]
     [:*
-     ;; TODO: ¿y si solo hay un fill?
-     #_[:> elem-name (-> (obj/get child "props")
-                       (obj/clone)
-                       #_(obj/set! "fill" (str "url(#fill-" render-id ")"))
-                       #_(attrs/add-fill shape render-id 0)
-
-                       (cond-> multiple-fills?
-                         (obj/set! "fill" (str "url(#fill-" render-id ")")))
-
-                       #_(cond-> (one-fill?)
-                         (obj/merge!
-                          (attrs/extract-fill-attrs (get-in shape [:fills 0]) 0))))]
-
      (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
        [:& shape-custom-stroke {:shape (assoc value :points (:points shape)) :index index}
-        [:> elem-name (kk index shape child value)]])]))
+        [:> elem-name (build-stroke-props index shape child value)]])]))
 
