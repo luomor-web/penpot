@@ -34,8 +34,7 @@
   (let [locale  (mf/deref i18n/locale)
         shapes  (->> shapes (map #(gsh/translate-to-frame % frame)))
         type    (if (= (count shapes) 1) (-> shapes first :type) :multiple)
-        options (type->options type)
-        _ (println "----------->" options)]
+        options (type->options type)]
     [:div.element-options
      (for [option options]
        [:> (case option

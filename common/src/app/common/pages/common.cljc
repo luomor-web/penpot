@@ -9,7 +9,7 @@
    [app.common.colors :as clr]
    [app.common.uuid :as uuid]))
 
-(def file-version 14)
+(def file-version 15)
 (def default-color clr/gray-20)
 (def root uuid/zero)
 

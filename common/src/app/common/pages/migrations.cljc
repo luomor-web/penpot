@@ -330,3 +330,42 @@
             (update page :objects #(d/mapm update-object %)))]
 
     (update data :pages-index #(d/mapm update-page %))))
+
+(defn set-strokes
+  [shape]
+  (let [attrs {:stroke-style (:stroke-style shape)
+               :stroke-alignment (:stroke-alignment shape)
+               :stroke-width (:stroke-width shape)
+               :stroke-color (:stroke-color shape)
+               :stroke-color-ref-id (:stroke-color-ref-id shape)
+               :stroke-color-ref-file (:stroke-color-ref-file shape)
+               :stroke-opacity (:stroke-opacity shape)
+               :stroke-color-gradient (:stroke-color-gradient shape)
+               :stroke-cap-start (:stroke-cap-start shape)
+               :stroke-cap-end (:stroke-cap-end shape)}
+
+        clean-attrs (d/without-nils attrs)]
+    (-> shape
+        (dissoc :stroke-style)
+        (dissoc :stroke-alignment)
+        (dissoc :stroke-width)
+        (dissoc :stroke-color)
+        (dissoc :stroke-color-ref-id)
+        (dissoc :stroke-color-ref-file)
+        (dissoc :stroke-opacity)
+        (dissoc :stroke-color-gradient)
+        (dissoc :stroke-cap-start)
+        (dissoc :stroke-cap-end))))
+
+;; Add strokes to shapes
+(defmethod migrate 15
+  [data]
+  (letfn [(update-object [_ object]
+            (cond-> object
+              (nil? (:strokes object))
+              (set-strokes)))
+
+          (update-page [_ page]
+            (update page :objects #(d/mapm update-object %)))]
+
+    (update data :pages-index #(d/mapm update-page %))))
