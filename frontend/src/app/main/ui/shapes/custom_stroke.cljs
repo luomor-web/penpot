@@ -330,9 +330,10 @@
 
       :else
       [:*
-       [:defs
-        [:& stroke-defs {:shape shape :render-id render-id :index index}]]
-       child])))
+       [:g.stroke-shape
+        [:defs
+         [:& stroke-defs {:shape shape :render-id render-id :index index}]]
+        child]])))
 
 (defn build-stroke-props [position shape child value]
   (let [render-id    (mf/use-ctx muc/render-ctx)
@@ -378,7 +379,13 @@
         shape (obj/get props "shape")
         elem-name    (obj/get child "type")]
     [:*
-     (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
-       [:& shape-custom-stroke {:shape (assoc value :points (:points shape)) :index index}
-        [:> elem-name (build-stroke-props index shape child value)]])]))
+     (cond
+       (seq (:strokes shape))
+       (for [[index value] (-> (d/enumerate (:strokes shape)) reverse)]
+         [:& shape-custom-stroke {:shape (assoc value :points (:points shape)) :index index}
+          [:> elem-name (build-stroke-props index shape child value)]])
 
+       :else
+       [:& shape-custom-stroke {:shape shape :index 0}
+        child]
+       )]))

@@ -186,7 +186,8 @@
           (st/emit! (dc/add-stroke ids {:stroke-style :solid
                                         :stroke-color clr/black
                                         :stroke-opacity 1
-                                        :stroke-width 1})))]
+                                        :stroke-width 1})))
+        _ (println "VALUES" values)]
 
     [:div.element-set
      [:div.element-set-title

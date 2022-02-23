@@ -112,9 +112,8 @@
 (defn add-stroke [attrs shape render-id index]
   (let [stroke-style (:stroke-style shape :none)
         stroke-color-gradient-id (str "stroke-color-gradient_" render-id "_" index)
-        stroke-width (:stroke-width shape 1)
-        ;; _ (println "add-stroke" shape index)
-        ]
+        stroke-width (:stroke-width shape 1)]
+    ;; TODO: check this
     (if true #_(not= stroke-style :none)
       (let [stroke-attrs
             (cond-> {:strokeWidth stroke-width}
