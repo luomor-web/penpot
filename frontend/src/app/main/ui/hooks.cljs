@@ -7,13 +7,18 @@
 (ns app.main.ui.hooks
   "A collection of general purpose react hooks."
   (:require
+   [app.common.data :as d]
+   [app.common.pages.helpers :as cph]
+   [app.common.uuid :as uuid]
    [app.main.data.shortcuts :as dsc]
+   [app.main.refs :as refs]
    [app.main.store :as st]
    [app.util.dom :as dom]
    [app.util.dom.dnd :as dnd]
    [app.util.timers :as ts]
    [beicon.core :as rx]
-   [rumext.alpha :as mf]))
+   [rumext.alpha :as mf]
+   ))
 
 (defn use-rxsub
   [ob]
@@ -235,3 +240,18 @@
     (let [ret (effect-fn)]
       (when (fn? ret) (ret)))
     (mf/use-effect deps effect-fn)))
+
+(defn with-focus-objects
+  [objects]
+  (let [focus (mf/deref refs/workspace-focus-selected)
+
+        ids-with-children
+        (mf/use-memo
+         (mf/deps focus objects)
+         #(when (d/not-empty? focus)
+            (into (conj focus uuid/zero)
+                  (mapcat (partial cph/get-children-ids objects))
+                  focus)))]
+    (cond-> objects
+      (some? ids-with-children)
+      (select-keys ids-with-children))))
